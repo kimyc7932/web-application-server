@@ -9,9 +9,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import model.User;
+import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -23,6 +29,7 @@ public class RequestHandler extends Thread {
     }
 
     public void run() {
+    	int contentLength = 0;
         log.debug("New Client Connect! Connected IP : {}, Port : {}", connection.getInetAddress(),
                 connection.getPort());
 
@@ -35,14 +42,30 @@ public class RequestHandler extends Thread {
         	while(line != null) {
         		if(line == null || line.equals("")) break;
         		log.debug("header : {}", line);
+        		if(line.startsWith("Content-Length")) {
+        			contentLength = Integer.parseInt(line.split(":")[1].trim());
+        		}
         		line = br.readLine();
         	}
         	
-        	byte[] body = null;
-        	if(reqInfo[1].equals("/index.html")) {
-        		body = Files.readAllBytes(new File("./webapp"+reqInfo[1]).toPath());
+        	byte[] body = "file not found".getBytes();
+        	Path filePath = null;
+        	
+        	String reqUrl = reqInfo[0] +" "+ reqInfo[1];
+        	String params = "";
+        	if(reqUrl.startsWith("GET /user/create")) {
+        		int index = reqInfo[1].indexOf("?");
+        		if(index == 0) return;
+        		params = reqInfo[1].substring(index+1);
+        		body = createUser(params).toString().getBytes();
+        	} else if(reqUrl.startsWith("POST /user/create")) {
+        		if(contentLength > 0) {
+        			params = IOUtils.readData(br, contentLength);
+        			body = ("POST "+(createUser(params).toString())).getBytes();
+        		}
         	} else {
-        		body = "Hello World".getBytes();
+        		filePath = new File("./webapp"+reqInfo[1]).toPath();
+        		body = Files.readAllBytes(filePath);
         	}
         	
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
@@ -54,7 +77,15 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void resonseIndex(InputStream in) {
+    private User createUser(String params) {
+		Map<String, String> map = HttpRequestUtils.parseQueryString(params);
+		User user = new User(map.get("userId"), map.get("password"), map.get("name"), map.get("email"));
+		log.debug("user info : {}", user.toString());
+		
+		return user;
+	}
+
+	private void resonseIndex(InputStream in) {
 //    	BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 //    	String str = "";
 //    	while((str = br.readLine()) != null) {
