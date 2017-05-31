@@ -30,7 +30,14 @@ public class RequestHandler extends Thread {
         	
         	BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
         	String line = br.readLine();
+        	if(line == null) return;
         	String[] reqInfo = line.split(" ");
+        	while(line != null) {
+        		if(line == null || line.equals("")) break;
+        		log.debug("header : {}", line);
+        		line = br.readLine();
+        	}
+        	
         	byte[] body = null;
         	if(reqInfo[1].equals("/index.html")) {
         		body = Files.readAllBytes(new File("./webapp"+reqInfo[1]).toPath());
