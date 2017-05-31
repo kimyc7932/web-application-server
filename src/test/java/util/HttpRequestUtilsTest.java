@@ -1,8 +1,14 @@
 package util;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -70,4 +76,50 @@ public class HttpRequestUtilsTest {
         Pair pair = HttpRequestUtils.parseHeader(header);
         assertThat(pair, is(new Pair("Content-Length", "59")));
     }
+
+    @Test
+    public void parseHeaderHost() throws Exception {
+    	String header = "Host: localhost:8080";
+    	Pair pair = HttpRequestUtils.parseHeader(header);
+    	assertThat(pair, is(new Pair("Host", "localhost:8080")));
+    }
+    
+    @Test
+    public void responseIndexTest() throws Exception {
+    	String str = "GET /index.html HTTP/1.1\n";
+    	str += "Host: localhost:8080\n";
+    	str += "Connection: keep-alive\n";
+    	str += "Accept: */*\n";
+    	
+    	ByteArrayInputStream bis = new ByteArrayInputStream(str.getBytes());
+    	BufferedReader br = new BufferedReader(new InputStreamReader(bis, "UTF-8"));
+    	
+    	String s = "";
+    	List list = new ArrayList();
+    	while( (s = br.readLine()) != null) {
+    		list.add(s);
+    	}
+    	
+    	assertThat(list.get(0), is("GET /index.html HTTP/1.1"));
+    	assertThat(list.get(1), is("Host: localhost:8080"));
+    	assertThat(list.get(2), is("Connection: keep-alive"));
+    	assertThat(list.get(3), is("Accept: */*"));
+	}
+    
+    @Test
+    public void responseIndexTest2() throws Exception {
+    	String str = "GET /index.html HTTP/1.1\n";
+    	str += "Host: localhost:8080\n";
+    	str += "Connection: keep-alive\n";
+    	str += "Accept: */*\n";
+    	
+    	ByteArrayInputStream bis = new ByteArrayInputStream(str.getBytes());
+    	BufferedReader br = new BufferedReader(new InputStreamReader(bis, "UTF-8"));
+    	
+    	String[] req = br.readLine().split(" ");
+    	
+    	assertThat(req[1], is("/index.html"));
+    }
+    
+    
 }
